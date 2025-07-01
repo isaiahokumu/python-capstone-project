@@ -1,4 +1,4 @@
-# python-capstone-project
+# Python-capstone-project
 #  🩺 Paediatric Clinical Assessment TOOL
 A Python capstone project supervised by ~ Melody Bonareri
 
