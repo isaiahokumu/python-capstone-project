@@ -340,11 +340,11 @@ def save_to_database(name, pid, age, residence, gender, condition, result, sympt
         
         cursor.execute('''
             INSERT OR REPLACE INTO patients 
-            (patient_id, full_name, initials, age_months, residence, gender, 
+            (patient_id, Initials, age_months, residence, gender, 
              condition_type, classification_result, symptoms, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            pid, name, get_initials(name), age, residence, gender,
+            pid, name, age, residence, gender,
             condition, result, json.dumps(symptoms_dict), datetime.now()
         ))
         
@@ -436,7 +436,7 @@ def generate_pdf_report(name, pid, age, residence, gender, condition, result, sy
         # Patient Information
         story.append(Paragraph("PATIENT INFORMATION", styles['Heading2']))
         patient_data = [
-            ['Patient Name:', name],
+            ['Patient Initials:', get_initials(name)],
             ['Patient ID:', pid],
             ['Age (months):', str(age)],
             ['Residence:', residence],
@@ -539,7 +539,7 @@ def main():
     # Initialize database
     init_database()
     
-    st.title("🩺 Enhanced Clinical Assessment Tool")
+    st.title("🩺 Paediatric Clinical Assessment Tool")
     st.markdown("Advanced clinical assessment with disease outbreak monitoring and emergency alerts")
     
     # Sidebar navigation
@@ -551,7 +551,11 @@ def main():
         "Analytics Dashboard",
         "Database Management"
     ])
-    
+
+    st.sidebar.title("Settings")
+    st.sidebar.markdown("A project by Isaiah Okumu (https://github.com/isaiahokumu/python-capstone-project.git)")
+
+
     if page == "Patient Assessment":
         patient_assessment_page()
     elif page == "Disease Monitoring":
@@ -577,13 +581,28 @@ def patient_assessment_page():
         st.subheader("🧍 Patient Information")
         st.session_state.patient_name = st.text_input("Full Name", 
                                                      st.session_state.get("patient_name", ""))
-        
+    
         col_age, col_gender = st.columns(2)
         with col_age:
-            st.session_state.patient_age = st.text_input("Age (in months)", 
-                                                        st.session_state.get("patient_age", ""))
-        with col_gender:
-            st.session_state.patient_gender = st.selectbox("Gender", ["", "M", "F"], 
+            # Convert current age to int for number_input, default to 1 if empty or invalid
+            current_age = st.session_state.get("patient_age", 1)
+            if isinstance(current_age, str):
+                try:
+                    current_age = int(current_age) if current_age.strip() else 1
+                except ValueError:
+                    current_age = 1
+    
+            st.session_state.patient_age = st.number_input(
+                 "Age (in months)", 
+                 min_value=1, 
+                 max_value=60, 
+                 value=current_age,
+                 step=1,
+                 help="Enter age between 1-60 months"
+             )    
+
+    with col_gender:
+        st.session_state.patient_gender = st.selectbox("Gender", ["", "Male", "Female"], 
                                                           index=0 if not st.session_state.get("patient_gender", "") 
                                                           else (1 if st.session_state.get("patient_gender") == "M" else 2))
         
@@ -664,23 +683,23 @@ def classify_and_save():
     """Handle classification and saving of patient data"""
     name = st.session_state.patient_name.strip()
     initials = get_initials(name)
-    age_str = st.session_state.patient_age.strip()
+    age = st.session_state.patient_age
     residence = st.session_state.patient_residence.strip()
     gender = st.session_state.patient_gender
     workflow = st.session_state.workflow_choice
     
     # Validation
-    if not name or not age_str or not residence or not gender:
+    if not name or not age or not residence or not gender:
         st.error("Please complete all required fields.")
         return
     
-    if not age_str.isdigit():
-        st.error("Age must be a valid number.")
+    if age < 1 or age > 60:
+        st.error("Age must be between 1 and 60 months.")
         return
-    
-    age = int(age_str)
+        
+    age = int(age)
     patient_id = generate_patient_id(initials)
-    
+        
     # Perform classification
     if workflow == "Meningitis":
         meningitis = MeningitisWorkflow(
