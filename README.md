@@ -70,7 +70,13 @@ I'll consider it a success if it handles at least 5 entries with anonymization o
 ____________________________
 
 ### Stretch goals
-Multi-language support
+Add audio-to-text for voice-based symptom input
+
+NLP-based location extraction from outbreak text
+
+Add GPS/geocoding for outbreak mapping
+
+Deploy to cloud (e.g., Streamlit Cloud or Heroku)
 
 _____________________________
 
