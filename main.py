@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import datetime, timedelta
+import pytz 
 import csv
 import hashlib
 import os
@@ -9,14 +10,13 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 import json
-import time
-from typing import Dict, List, Optional
+from typing import Dict, List
 import re
 
 # ========== Database Setup ==========
@@ -31,7 +31,6 @@ def init_database():
         CREATE TABLE IF NOT EXISTS patients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             patient_id TEXT UNIQUE,
-            full_name TEXT,
             initials TEXT,
             age_months INTEGER,
             residence TEXT,
@@ -151,6 +150,7 @@ class DiseaseOutbreakMonitor:
             soup = BeautifulSoup(response.content, 'html.parser')
             outbreaks = []
             
+            eafrica = pytz.timezone('Africa/Nairobi')
             # This is a simplified scraper - actual implementation would need to be adapted to WHO's current HTML structure
             articles = soup.find_all('div', class_='list-view--item')[:5]  # Get latest 5
             
@@ -167,7 +167,7 @@ class DiseaseOutbreakMonitor:
                         'location': location,
                         'source': 'WHO',
                         'description': title,
-                        'date_reported': datetime.now().date(),
+                        'date_reported': datetime.now(eafrica).date(),
                         'severity_level': self.assess_severity(title),
                         'cases': 0,  # Would need more detailed scraping
                         'deaths': 0
@@ -192,6 +192,8 @@ class DiseaseOutbreakMonitor:
             soup = BeautifulSoup(response.content, 'html.parser')
             outbreaks = []
             
+            eafrica = pytz.timezone('Africa/Nairobi')
+
             # Simplified CDC scraper
             articles = soup.find_all('div', class_='card-body')[:5]
             
@@ -207,7 +209,7 @@ class DiseaseOutbreakMonitor:
                         'location': location,
                         'source': 'CDC',
                         'description': title,
-                        'date_reported': datetime.now().date(),
+                        'date_reported': datetime.now(eafrica).date(),
                         'severity_level': self.assess_severity(title),
                         'cases': 0,
                         'deaths': 0
@@ -225,7 +227,7 @@ class DiseaseOutbreakMonitor:
         # Common disease patterns
         diseases = ['meningitis', 'cholera', 'ebola', 'malaria', 'dengue', 'yellow fever', 
                    'measles', 'polio', 'hepatitis', 'diphtheria', 'typhoid', 'plague']
-        
+
         text_lower = text.lower()
         disease = "Unknown"
         location = "Unknown"
@@ -256,13 +258,14 @@ class DiseaseOutbreakMonitor:
     
     def get_mock_outbreaks(self) -> List[Dict]:
         """Generate mock outbreak data for demonstration"""
+        eafrica = pytz.timezone('Africa/Nairobi')
         mock_data = [
             {
                 'disease_name': 'Meningitis',
                 'location': 'Northern Kenya',
                 'source': 'MOH Kenya',
                 'description': 'Meningitis outbreak reported in Turkana County with 45 suspected cases',
-                'date_reported': datetime.now().date(),
+                'date_reported': datetime.now(eafrica).date(),
                 'severity_level': 'High',
                 'cases': 45,
                 'deaths': 3
@@ -272,7 +275,7 @@ class DiseaseOutbreakMonitor:
                 'location': 'Coastal Region',
                 'source': 'WHO',
                 'description': 'Cholera cases increasing in coastal areas following heavy rains',
-                'date_reported': (datetime.now() - timedelta(days=2)).date(),
+                'date_reported': (datetime.now(eafrica) - timedelta(days=2)).date(),
                 'severity_level': 'Medium',
                 'cases': 127,
                 'deaths': 2
@@ -282,7 +285,7 @@ class DiseaseOutbreakMonitor:
                 'location': 'Mombasa',
                 'source': 'CDC',
                 'description': 'Dengue fever cases reported in urban areas of Mombasa',
-                'date_reported': (datetime.now() - timedelta(days=1)).date(),
+                'date_reported': (datetime.now(eafrica) - timedelta(days=1)).date(),
                 'severity_level': 'Medium',
                 'cases': 23,
                 'deaths': 0
@@ -329,11 +332,13 @@ def get_initials(name):
     return ''.join([part[0].upper() for part in name.strip().split() if part])
 
 def generate_patient_id(name):
-    base = name.strip().lower() + datetime.now().isoformat()
+    eafrica = pytz.timezone('Africa/Nairobi')
+    base = name.strip().lower() + datetime.now(eafrica).isoformat()
     return hashlib.sha256(base.encode()).hexdigest()[:8].upper()
 
 def save_to_database(name, pid, age, residence, gender, condition, result, symptoms_dict):
     """Save patient data to SQLite database"""
+    eafrica = pytz.timezone('Africa/Nairobi')
     try:
         conn = sqlite3.connect('clinical_assessment.db')
         cursor = conn.cursor()
@@ -345,7 +350,7 @@ def save_to_database(name, pid, age, residence, gender, condition, result, sympt
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             pid, name, age, residence, gender,
-            condition, result, json.dumps(symptoms_dict), datetime.now()
+            condition, result, json.dumps(symptoms_dict), datetime.now(eafrica).strftime("%Y-%m-%d %H:%M:%S")
         ))
         
         conn.commit()
@@ -421,7 +426,8 @@ def generate_pdf_report(name, pid, age, residence, gender, condition, result, sy
         doc = SimpleDocTemplate(filename, pagesize=A4)
         styles = getSampleStyleSheet()
         story = []
-        
+        eafrica = pytz.timezone('Africa/Nairobi')
+
         # Title
         title_style = ParagraphStyle(
             'CustomTitle',
@@ -441,7 +447,7 @@ def generate_pdf_report(name, pid, age, residence, gender, condition, result, sy
             ['Age (months):', str(age)],
             ['Residence:', residence],
             ['Gender:', gender],
-            ['Assessment Date:', datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+            ['Assessment Date:', datetime.now(eafrica).strftime("%Y-%m-%d %H:%M:%S")]
         ]
         
         patient_table = Table(patient_data, colWidths=[2*inch, 4*inch])
@@ -489,7 +495,7 @@ def generate_pdf_report(name, pid, age, residence, gender, condition, result, sy
         # Footer
         story.append(Paragraph("This report was generated by the Clinical Assessment Tool", 
                              styles['Normal']))
-        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 
+        story.append(Paragraph(f"Generated on: {datetime.now(eafrica).strftime('%Y-%m-%d %H:%M:%S')}", 
                              styles['Normal']))
         
         doc.build(story)
@@ -552,6 +558,7 @@ def main():
         "Database Management"
     ])
 
+    st.markdown("---")
     st.sidebar.title("Settings")
     st.sidebar.markdown("A project by Isaiah Okumu (https://github.com/isaiahokumu/python-capstone-project.git)")
 
