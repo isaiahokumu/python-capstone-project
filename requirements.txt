@@ -1,0 +1,26 @@
+# Core dependencies
+streamlit>=1.32.0
+pandas>=2.2.0
+plotly>=5.18.0
+
+# Database
+sqlite3  # Built-in,this is included for clarity
+
+# Web scraping
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+
+# PDF generation
+reportlab>=4.0.0
+
+# Data handling
+numpy>=1.26.0
+
+# Utility
+python-dateutil>=2.8.2
+
+# Typing and dev utils (optional)
+typing-extensions>=4.9.0
+
+# Optional: for compatibility or future NLP enhancements
+regex>=2023.12.25
