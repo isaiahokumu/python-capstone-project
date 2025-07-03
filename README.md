@@ -88,5 +88,9 @@ cd pcat-clinical-tool
 pip install -r requirements.txt
 streamlit run pcat.py
 
+```
+_______________________________
+Adapted from Basic Paediatric Protocol 2022 Edition
+Check reference images
 
 
