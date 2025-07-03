@@ -83,7 +83,7 @@ _____________________________
 ### 📦 Installation
 
 ```bash
-git clone https://github.com/yourusername/pcat-clinical-tool.git
+git clone https://[github.com/yourusername/pcat-clinical-tool.git](https://github.com/isaiahokumu/python-capstone-project.git)
 cd pcat-clinical-tool
 pip install -r requirements.txt
 streamlit run pcat.py
